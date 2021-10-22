@@ -1038,6 +1038,7 @@ export class RfqmService {
         let isTxConfirmed = false;
         let jobStatus: RfqmJobStatus | null = null;
 
+        // this looks like it actually waits for all transactions to have been mined, instead of any?
         // check if any tx has been mined
         const receipts = await Promise.all(
             Object.keys(submissionsMap).map(async (transactionHash) => {
@@ -1075,6 +1076,8 @@ export class RfqmService {
                             actualTakerFillAmount: decodedLog.args.takerTokenFilledAmount.toString(),
                             decodedFillLog: JSON.stringify(decodedLog),
                         };
+                        // submissionsMap[r.transactionHash].priorityFee = r.response.priorityFee;
+                        // submissionsMap[r.transactionHash].gasPrice = r.response.baseFee + r.response.priorityFee;
                     } else {
                         jobStatus = isTxConfirmed
                             ? RfqmJobStatus.FailedRevertedConfirmed
@@ -1103,6 +1106,7 @@ export class RfqmService {
                     };
                 }
             }
+            // here is where we need to do it....
             await this._dbUtils.updateRfqmTransactionSubmissionsAsync(Object.values(submissionsMap));
             if (jobStatus !== null) {
                 await this._dbUtils.updateRfqmJobAsync(orderHash, false, { status: jobStatus });
@@ -1128,10 +1132,15 @@ export class RfqmService {
         nonce: number,
         gasEstimate: number,
     ): Promise<RfqmTransactionSubmissionEntity> {
+        const gasOptions = {
+            maxFeePerGas: gasPrice,
+            maxPriorityFeePerGas: new BigNumber(4),
+        };
+
         const txOptions = {
+            ...gasOptions,
             from: workerAddress,
             gas: gasEstimate,
-            gasPrice,
             nonce,
             value: 0,
         };
@@ -1146,12 +1155,12 @@ export class RfqmService {
         );
 
         const partialEntity: Partial<RfqmTransactionSubmissionEntity> = {
+            ...gasOptions,
             transactionHash,
             orderHash,
             createdAt: new Date(),
             from: workerAddress,
             to: this._blockchainUtils.getExchangeProxyAddress(),
-            gasPrice,
             nonce,
             status: RfqmTransactionSubmissionStatus.Presubmit,
         };

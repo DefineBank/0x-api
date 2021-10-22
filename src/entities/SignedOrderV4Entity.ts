@@ -57,26 +57,7 @@ class ValidSignedOrderV4Entity {
     @ViewColumn({ name: 'created_at' })
     public createdAt?: string;
 
-    constructor(
-        opts: {
-            hash?: string;
-            makerToken?: string;
-            takerToken?: string;
-            makerAmount?: string;
-            takerAmount?: string;
-            maker?: string;
-            taker?: string;
-            pool?: string;
-            expiry?: string;
-            salt?: string;
-            verifyingContract?: string;
-            takerTokenFeeAmount?: string;
-            sender?: string;
-            feeRecipient?: string;
-            signature?: string;
-            remainingFillableTakerAmount?: string;
-        } = {},
-    ) {
+    constructor(opts: Partial<ValidSignedOrderV4Entity> = {}) {
         Object.assign(this, opts);
     }
 }
